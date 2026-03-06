@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Filmek</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(to bottom, skyblue, white);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 14px;
+      color: #111;
+    }
+
+    .container {
+      width: 90%;
+      margin: 0 auto;
+    }
+
+    /* Urlap */
+    .urlap {
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: rgba(255,255,255,0.4);
+    }
+
+    .urlap-sor1 {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .urlap-sor2 {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .urlap label {
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .urlap input {
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      padding: 3px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .urlap input:focus { border-color: #888; }
+
+    .input-ev    { width: 50px; }
+    .input-imdb  { width: 50px; }
+    .input-cim   { flex: 1; }
+    .input-kep   { flex: 1; }
+
+    .urlap button {
+      background: #eee;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+      cursor: pointer;
+      padding: 2px 15px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .urlap button:hover { background: #ddd; }
+
+    .urlap-msg {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #c00;
+    }
+
+    /* Evek */
+    .evek {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .evek-label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .ev-btn {
+      background: #eee;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+      cursor: pointer;
+      padding: 2px 15px;
+      font-size: 14px;
+    }
+
+    .ev-btn.active { background: #d0d0d0; }
+    .ev-btn:hover  { background: #ddd; }
+
+    /* Kepek */
+    .kepek-wrapper {
+      height: 150px;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: grey rgba(192,192,192,0.5);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px;
+      margin-bottom: 12px;
+      background: rgba(255,255,255,0.5);
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .kepek-wrapper img {
+      width: 95px;
+      height: 140px;
+      object-fit: cover;
+      border: 1px solid black;
+      border-radius: 5px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: box-shadow 0.15s;
+    }
+
+    .kepek-wrapper img:hover {
+      box-shadow: 2px 2px 5px black;
+    }
+
+    /* Info */
+    .info {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 10px;
+      background: rgba(255,255,255,0.5);
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      min-height: 80px;
+    }
+
+    .info img {
+      width: 190px;
+      height: 281px;
+      object-fit: cover;
+      border: 1px solid black;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .info-adatok {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 8px;
+    }
+
+    .info-cim {
+      font-size: 22pt;
+      font-weight: bold;
+      color: #111;
+      line-height: 1.2;
+    }
+
+    .info-ev {
+      font-size: 16pt;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .info-imdb {
+      font-size: 100pt;
+      font-weight: bold;
+      color: #1565c0;
+      line-height: 1;
+      margin-top: 8px;
+    }
+
+    .placeholder {
+      color: #888;
+      font-style: italic;
+      padding: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const API = "http://localhost:88";
+
+// --- Urlap ---
+function Urlap({ onHozzaad }) {
+  const [cim, setCim] = React.useState("");
+  const [ev, setEv] = React.useState("");
+  const [imdb, setImdb] = React.useState("");
+  const [kep, setKep] = React.useState("");
+  const [msg, setMsg] = React.useState("");
+
+  async function handleHozzaad() {
+    if (!cim || !ev || !imdb || !kep) {
+      setMsg("Minden mezőt ki kell tölteni!");
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/film`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cim, ev: parseInt(ev), imdb: parseFloat(imdb), kep })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg(data.error || "Hiba történt!");
+      } else {
+        setMsg("✔ Film sikeresen felvéve!");
+        setCim(""); setEv(""); setImdb(""); setKep("");
+        onHozzaad();
+      }
+    } catch (e) {
+      setMsg("Kapcsolódási hiba!");
+    }
+  }
+
+  return (
+    <div className="urlap">
+      <div className="urlap-sor1">
+        <label>Cím:</label>
+        <input className="input-cim" value={cim} onChange={e => setCim(e.target.value)} />
+        <label>Év:</label>
+        <input className="input-ev" placeholder="2025" value={ev} onChange={e => setEv(e.target.value)} type="number" />
+        <label>ImDB:</label>
+        <input className="input-imdb" placeholder="5.0" value={imdb} onChange={e => setImdb(e.target.value)} type="number" step="0.1" />
+        <button onClick={handleHozzaad}>Hozzáad</button>
+      </div>
+      <div className="urlap-sor2">
+        <label>Kép:</label>
+        <input className="input-kep" placeholder="https://" value={kep} onChange={e => setKep(e.target.value)} />
+      </div>
+      {msg && <div className="urlap-msg">{msg}</div>}
+    </div>
+  );
+}
+
+// --- Evek ---
+function Evek({ evek, kivalasztott, onValaszt }) {
+  return (
+    <div className="evek">
+      <span className="evek-label">Év:</span>
+      <button
+        className={`ev-btn${kivalasztott === null ? " active" : ""}`}
+        onClick={() => onValaszt(null)}
+      >Mind</button>
+      {evek.map(ev => (
+        <button
+          key={ev}
+          className={`ev-btn${kivalasztott === ev ? " active" : ""}`}
+          onClick={() => onValaszt(ev)}
+        >{ev}</button>
+      ))}
+    </div>
+  );
+}
+
+// --- Kepek ---
+function Kepek({ filmek, onKattint }) {
+  return (
+    <div className="kepek-wrapper">
+      {filmek.length === 0 && <span className="placeholder">Nincsenek filmek.</span>}
+      {filmek.map(film => (
+        <img
+          key={film.id}
+          src={film.kep}
+          alt={film.cim}
+          title={film.cim}
+          onClick={() => onKattint(film)}
+          onError={e => { e.target.src = "https://via.placeholder.com/95x140?text=?"; }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// --- Info ---
+function Info({ film }) {
+  if (!film) return (
+    <div className="info">
+      <span className="placeholder">Kattints egy filmre a részletek megtekintéséhez!</span>
+    </div>
+  );
+  return (
+    <div className="info">
+      <img
+        src={film.kep}
+        alt={film.cim}
+        onError={e => { e.target.src = "https://via.placeholder.com/190x281?text=?"; }}
+      />
+      <div className="info-adatok">
+        <div className="info-cim">{film.cim}</div>
+        <div className="info-ev">({film.ev})</div>
+        <div className="info-imdb">{parseFloat(film.imdb).toFixed(1)}</div>
+      </div>
+    </div>
+  );
+}
+
+// --- App ---
+function App() {
+  const [evek, setEvek] = React.useState([]);
+  const [kivalasztottEv, setKivalasztottEv] = React.useState(null);
+  const [filmek, setFilmek] = React.useState([]);
+  const [kivalasztottFilm, setKivalasztottFilm] = React.useState(null);
+
+  async function fetchEvek() {
+    try {
+      const res = await fetch(`${API}/evek`);
+      const data = await res.json();
+      setEvek(data);
+    } catch (e) { console.error(e); }
+  }
+
+  async function fetchFilmek(ev) {
+    try {
+      const url = ev === null ? `${API}/filmek` : `${API}/ev/${ev}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setFilmek(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+  }
+
+  React.useEffect(() => {
+    fetchEvek();
+    fetchFilmek(null);
+  }, []);
+
+  function handleEvValaszt(ev) {
+    setKivalasztottEv(ev);
+    setKivalasztottFilm(null);
+    fetchFilmek(ev);
+  }
+
+  function handleHozzaad() {
+    fetchEvek();
+    fetchFilmek(kivalasztottEv);
+  }
+
+  return (
+    <div className="container">
+      <h1>Filmek</h1>
+      <Urlap onHozzaad={handleHozzaad} />
+      <Evek evek={evek} kivalasztott={kivalasztottEv} onValaszt={handleEvValaszt} />
+      <Kepek filmek={filmek} onKattint={setKivalasztottFilm} />
+      <Info film={kivalasztottFilm} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
